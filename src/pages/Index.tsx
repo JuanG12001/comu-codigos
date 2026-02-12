@@ -29,15 +29,14 @@ const Index = () => {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Initial Fetch & Filter by 5 minutes
+  // Initial Fetch - Persistent Messages (Limit 50)
   const fetchEntries = async () => {
     try {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       let { data, error } = await supabase
         .from('community_codes')
         .select('*')
-        .gt('created_at', fiveMinutesAgo)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setEntries(data as Entry[] || []);
@@ -49,7 +48,7 @@ const Index = () => {
     }
   };
 
-  // Realtime Subscription and Periodic Cleanup
+  // Realtime Subscription
   useEffect(() => {
     fetchEntries();
 
@@ -66,19 +65,7 @@ const Index = () => {
       )
       .subscribe();
 
-    // 2. Auto-hide expired entries every 10 seconds (visual cleanup)
-    const interval = setInterval(() => {
-      setEntries(currentEntries => {
-        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-        return currentEntries.filter(entry => {
-          const entryTime = new Date(entry.created_at).getTime();
-          return entryTime > fiveMinutesAgo;
-        });
-      });
-    }, 10000); // Check every 10 seconds
-
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -302,7 +289,7 @@ const Index = () => {
           ) : entries.length === 0 ? (
             <div className="text-center py-20 bg-card/50 rounded-xl border border-dashed border-border">
               <Zap className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-base font-medium text-muted-foreground">¡Se el primero en compartir! (Visible por 5 min)</p>
+              <p className="text-base font-medium text-muted-foreground">¡Se el primero en compartir!</p>
             </div>
           ) : (
             <div className="grid gap-4">
